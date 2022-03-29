@@ -91,3 +91,4 @@ if uploaded_file is not None:
             
 else:
     st.info('Awaiting for XLSX file to be uploaded in sidebar.')
+    st.session_state.scenarios = None

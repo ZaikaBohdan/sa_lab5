@@ -26,7 +26,8 @@ if 'scenarios' not in st.session_state:
 
 st.set_page_config(
     page_title='SA Lab 5: Cross-impact method',
-    layout='wide'
+    page_icon='🎓',
+    layout='centered'
 )
 
 st.write("# SA Lab 5: Cross-impact method")
@@ -80,9 +81,10 @@ if uploaded_file is not None:
             0
         )
         n_scen =  int(select_scen[-1]) - 1
-        st.dataframe(st.session_state.scenarios[n_scen])
-        xlsx_file = to_excel_all_scens(st.session_state.scenarios)
-        st.download_button(label='📥 Download Current Results',
+        st.dataframe(st.session_state.scenarios[0][n_scen])
+        st.latex(f"L_1 = {st.session_state.scenarios[1]:.4f};L_4 = {st.session_state.scenarios[2]}; D = {st.session_state.scenarios[3]:.4f}.")
+        xlsx_file = to_excel_all_scens(st.session_state.scenarios[0])
+        st.download_button(label='📥 Download .xlsx file with results',
                                 data=xlsx_file ,
                                 file_name= 'generated_scenarios.xlsx')
 

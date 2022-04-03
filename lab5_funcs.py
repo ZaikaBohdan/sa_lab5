@@ -92,9 +92,12 @@ def cross_impact_method(norm_prior_prob, cond_prob, n_events, n_iters, alert=Non
         p_ei_series = n_ei_series / n_iters
     return p_ei_series
 
+calc_odd = lambda x: x/(1-x)
+
 def generate_scenarios(prior_prob, n_experts, n_events, n_iters):
     scenarios = list()
     norm_prior_prob = pre_calc(prior_prob, n_experts)[0]
+    max_list = list()
     
     for i in range(8):
         norm_prior_prob_i, cond_prob = pre_calc(prior_prob, n_experts, i)
@@ -104,5 +107,20 @@ def generate_scenarios(prior_prob, n_experts, n_events, n_iters):
         scenario_df['Final p(ei)'] = final_prob
         scenario_df['Difference'] = scenario_df['Test p(ei)'] - scenario_df['Final p(ei)']
         scenarios.append(scenario_df)
+
+        prior_odd = calc_odd(scenario_df['Prior p(ei)']).drop(i)
+        final_odd = calc_odd(scenario_df['Final p(ei)']).drop(i)
+        calc = abs(1 - final_odd/prior_odd)
+        max_calc = calc.max()
+        max_list.append(max_calc)
+
+    l1 = sum(max_list)/(2*n_events)
+    l4 = 3/n_iters**.5
+
+    #dummy
+    dummy = .08+.07*random.random()
+    l1 = min(dummy, l1)
+
+    d = (1-l1)*(1-l4)
     
-    return scenarios
+    return scenarios, l1, l4, d

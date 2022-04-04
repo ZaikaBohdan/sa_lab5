@@ -5,10 +5,6 @@ from io import BytesIO
 
 from lab5_funcs import pre_calc, generate_scenarios
 
-
-
-from io import BytesIO
-
 # Functions
 def to_excel_all_scens(scens_list):
     output = BytesIO()

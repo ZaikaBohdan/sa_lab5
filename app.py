@@ -1,3 +1,4 @@
+from multiprocessing.dummy.connection import families
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -8,6 +9,7 @@ from lab5_funcs import pre_calc, generate_scenarios
 
 from io import BytesIO
 
+# Functions
 def to_excel_all_scens(scens_list):
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
@@ -20,7 +22,51 @@ def to_excel_all_scens(scens_list):
     processed_data = output.getvalue()
     return processed_data
 
+def build_report(prior_prob, scens_list, view_cond_prob):
+    report = ''
+    formater = lambda x: f'{x:.4f}'
+    abs_val_list = list()
+    p_prob_to_str = prior_prob.to_string(float_format=formater, index=False)
+    report += '<===== Початкова імовірність подій за даними експертів =====>\n'
+    report += f'{p_prob_to_str}\n\n'
+    
+    c_prob_to_str = view_cond_prob.to_string(float_format=formater, index=False)
+    report += '<===== Нормована імовірність подій та згенеровані умовні ймовірності =====>\n'
+    report += f'{c_prob_to_str}\n\n'
 
+    report += '<===== Результати згенерованих сценаріїв =====>\n'
+    for i in range(len(scens_list)):
+        report += f'Сценарій {i+1}\n'
+        df_to_str = scens_list[i].to_string(float_format=formater, index=False)
+        report += f'{df_to_str}\n'
+        report += f'Підвищення імовірності події e_{i} "{prior_prob.iloc[i, 1]}" до 1 призвело до наступних результатів:\n'
+        val_counter = 0
+        for j in range(len(scens_list)):
+            if j == i:
+                continue
+            report += f'\t> імовірність події e_{j} "{prior_prob.iloc[j, 1]}" '
+            val = round(scens_list[i].loc[j,'Difference'] * 100, 2)
+            abs_val = abs(val)
+            val_counter += abs_val
+            if val > 0:
+                report += f'підвищилась на ⇑ {abs_val}%'
+            elif val < 0:
+                report += f'знизилась на ⇓ {abs_val}%'
+            else:
+                report += f'не змінилась'
+            report += '\n'
+        abs_val_list.append((i, round(val_counter,2)))
+        report += '\n'
+    
+    report += 'Рейтинг подій за впливом на систему:\n'
+    abs_val_list = sorted(abs_val_list, reverse=True, key=lambda x: x[1])
+    for i, el in zip(range(len(scens_list)),abs_val_list):
+        report += f'\t{i+1}. Подія e_{el[0]} "{prior_prob.iloc[el[0], 1]}" (всього {el[1]}%)\n'
+    
+    return report
+        
+
+# Interface
 if 'scenarios' not in st.session_state:
 	st.session_state.scenarios = None
 
@@ -83,10 +129,21 @@ if uploaded_file is not None:
         n_scen =  int(select_scen[-1]) - 1
         st.dataframe(st.session_state.scenarios[0][n_scen])
         st.latex(f"L_1 = {st.session_state.scenarios[1]:.4f};L_4 = {st.session_state.scenarios[2]}; D = {st.session_state.scenarios[3]:.4f}.")
+
         xlsx_file = to_excel_all_scens(st.session_state.scenarios[0])
-        st.download_button(label='📥 Download .xlsx file with results',
-                                data=xlsx_file ,
-                                file_name= 'generated_scenarios.xlsx')
+        
+        col1, col2 = st.columns(2)
+        col1.download_button(
+            label='📥 Download .xlsx file with results',
+            data=xlsx_file, 
+            file_name= 'generated_scenarios.xlsx'
+            )
+        col2.download_button(
+            label='📥 Download .txt file with conclusion',
+            data=build_report(p_prob, st.session_state.scenarios[0], view_c_prob), 
+            file_name= 'conclusion_ua.txt'
+            )
+        
 
     else:
         st.info("Choose the number of iterations for Monte-Karlo method and press 'Generate scenarios' button in sidebar.")
